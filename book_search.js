@@ -23,11 +23,30 @@
      * return the appropriate object here. */
 
     var result = {
-        "SearchTerm": "",
+        "SearchTerm": searchTerm,
         "Results": []
     };
     
-    return result; 
+    // Iterate through each book in the scanned text
+    scannedTextObj.forEach(book => {
+        // Iterate through each content line in the book
+        book.Content.forEach(content => {
+            // Remove punctuation
+            content.Text = content.Text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+            // Split into words
+            var words = content.Text.split(" ");
+            // Check if the text contains the search term
+            if (words.includes(searchTerm)) {
+                result.Results.push({
+                    "ISBN": book.ISBN,
+                    "Page": content.Page,
+                    "Line": content.Line
+                });
+            }
+        });
+    });
+
+    return result;
 }
 
 /** Example input object. */
@@ -101,4 +120,129 @@ if (test2result.Results.length == 1) {
     console.log("FAIL: Test 2");
     console.log("Expected:", twentyLeaguesOut.Results.length);
     console.log("Received:", test2result.Results.length);
+}
+
+
+/*
+    ADDITIONAL UNIT TESTS
+*/
+const littlePrinceIn = [
+    {
+        "Title": "The Little Prince",
+        "ISBN": "9789999999999",
+        "Content": [
+            {
+                "Page": 12,
+                "Line": 3,
+                "Text": "The most beautiful things in the world cannot be seen or touched."
+            },
+            {
+                "Page": 12,
+                "Line": 4,
+                "Text": "They are felt with the heart."
+            },
+            {
+                "Page": 13,
+                "Line": 1,
+                "Text": "What is essential is invisible to the eye."
+            } 
+        ] 
+    }
+];
+
+
+// Positive Test: A test that returns a match.
+// This also tests that the search correctly strips punctuation, because the word "heart" is followed by a period.
+const positiveTestResult = findSearchTermInBooks("heart", littlePrinceIn);
+const expectedPositiveTestResult = {
+    "SearchTerm": "heart",
+    "Results": [
+        {
+            "ISBN": "9789999999999",
+            "Page": 12,
+            "Line": 4
+        }
+    ]
+};
+if (JSON.stringify(positiveTestResult) === JSON.stringify(expectedPositiveTestResult)) {
+    console.log("PASS: Positive Test");
+} else {
+    console.log("FAIL: Positive Test");
+    console.log("Expected:", expectedPositiveTestResult);
+    console.log("Received:", positiveTestResult);
+}
+
+// Negative Test: A test that does not return any matches.
+const negativeTestResult = findSearchTermInBooks("moon", littlePrinceIn);
+const expectedNegativeTestResult = {
+    "SearchTerm": "moon",
+    "Results": []
+}
+if (JSON.stringify(negativeTestResult) === JSON.stringify(expectedNegativeTestResult)) {
+    console.log("PASS: Negative Test");
+} else {
+    console.log("FAIL: Negative Test");
+    console.log("Expected:", expectedNegativeTestResult);
+    console.log("Received:", negativeTestResult);
+}
+
+// Test for multiple matches in the same book.
+const multipleMatchTestResult = findSearchTermInBooks("the", littlePrinceIn);
+if (multipleMatchTestResult.Results.length === 3) {
+    console.log("PASS: Multiple Matches Test");
+} else {
+    console.log("FAIL: Multiple Matches Test");
+    console.log("Expected: 3");
+    console.log("Received:", multipleMatchTestResult.Results.length);
+}
+
+// Partial Word Test: test for a word that is part of another word.
+const partialWordTestResult = findSearchTermInBooks("The", littlePrinceIn);
+if (partialWordTestResult.Results.length === 1) { // Match "The" but not "They"
+    console.log("PASS: Partial Word Test");
+} else {
+    console.log("FAIL: Partial Word Test");
+    console.log("Expected: 1");
+    console.log("Received:", partialWordTestResult.Results.length);
+}
+
+// Case-sensitive Test: A test that matches on “The” but not on “the”.
+const caseSensitiveTestResult1 = findSearchTermInBooks("The", littlePrinceIn);
+const caseSensitiveTestResult2 = findSearchTermInBooks("the", littlePrinceIn);
+if (caseSensitiveTestResult1.Results.length === 1 && caseSensitiveTestResult2.Results.length === 3) {
+    console.log("PASS: Case-sensitive Test");
+} else {
+    console.log("FAIL: Case-sensitive Test");
+    console.log("Expected: 1, 3");
+    console.log("Received:", caseSensitiveTestResult1.Results.length, caseSensitiveTestResult2.Results.length);
+}
+
+// Test for no books in input.
+const noBooksTestResult = findSearchTermInBooks("world", []);
+if (noBooksTestResult.Results.length === 0) {
+    console.log("PASS: No Books Test");
+} else {
+    console.log("FAIL: No Books Test");
+    console.log("Expected: 0");
+    console.log("Received:", noBooksTestResult.Results.length);
+}
+
+// Test for a book with no content.
+const noContentTestResult = findSearchTermInBooks("world", [{"Title": "Empty Book", "ISBN": "0000000000", "Content": []}]);
+if (noContentTestResult.Results.length === 0) {
+    console.log("PASS: No Content Test");
+} else {
+    console.log("FAIL: No Content Test");
+    console.log("Expected: 0");
+    console.log("Received:", noContentTestResult.Results.length);
+}
+
+// Test for an empty search query.
+const emptyQueryTestResult = findSearchTermInBooks("", littlePrinceIn);
+if (emptyQueryTestResult.Results.length === 0) {
+    console.log("PASS: Empty Query Test");
+} else {
+    console.log("FAIL: Empty Query Test");
+    console.log("Expected: 0");
+    console.log("Received:", emptyQueryTestResult.Results.length);
 }
